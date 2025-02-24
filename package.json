@@ -9,7 +9,7 @@
     "restart": "pm2 restart dinuwh_bot"
   },
   "dependencies": {
-    "@whiskeysockets/baileys": "^6.7.9",
+    "@whiskeysockets/baileys": "npm:asitha-baliyes-new",
     "pino": "^9.6.0",
     "pm2": "^5.4.3",
     "express": "^4.21.2",
