@@ -77,6 +77,34 @@ async function connectToWA() {
   });
   
   conn.ev.on('creds.update', saveCreds);
+  //=================== CHANNEL MESSAGE SUPPORT ============================
+
+// Function to send message to a channel
+async function sendChannelMessage(channelId, text) {
+    const msg = { text: text };
+    await conn.sendMessage(channelId, msg);
+}
+
+// Listen for channel updates/messages
+conn.ev.on('messages.upsert', async (mek) => {
+    const msg = mek.messages[0];
+    if (!msg.message) return;
+
+    const from = msg.key.remoteJid;
+
+    // If message is from a channel
+    if (from.endsWith("@g.us") && msg.message?.protocolMessage?.type === 14) {
+        console.log("Channel Message Received:", msg);
+    }
+
+    // Example usage: Auto-reply to a channel message
+    if (from.includes("@g.us") && msg.message?.conversation) {
+        const text = msg.message.conversation.toLowerCase();
+        if (text.includes("hello")) {
+            sendChannelMessage(from, "Hello! This is an auto-reply from DINUWH MD Bot 💚");
+        }
+    }
+});
 
   conn.ev.on('messages.upsert', async(mek) => {
     mek = mek.messages[0];
