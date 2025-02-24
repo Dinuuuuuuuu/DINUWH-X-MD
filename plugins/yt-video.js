@@ -1,29 +1,32 @@
 const { cmd } = require('../command')
 const { fetchJson } = require('../lib/functions')
 
-const searchlink = 'https://dark-yasiya-api.site' 
-const downlink = 'https://dark-shan-yt.koyeb.app/download'
+cmd({ 
+    pattern: "video", 
+    alias: ["video2", "play"], 
+    react: "🎥", 
+    desc: "Download Youtube song", 
+    category: "main", 
+    use: '.song < Yt url or Name >', 
+    filename: __filename 
+}, async (conn, mek, m, { from, prefix, quoted, q, reply }) => { 
+    try { 
+        if (!q) return await reply("⚠️ Please provide a YouTube URL or song name!");
 
+        const yt = await ytsearch(q);
+        if (yt.results.length < 1) return reply("❌ No results found!");
 
-cmd({
-    pattern: "video",
-    desc: "download videos.",
-    category: "download",
-    react: "📸",
-    filename: __filename
-},
-async(conn, mek, m,{from, reply, q}) => {
-try{
+        let yts = yt.results[0];  
+        let apiUrl = `https://apis.davidcyriltech.my.id/download/ytmp4?url=${encodeURIComponent(yts.url)}`;
 
-if(!q) return reply('*නමක් හරි url එකක් හරි දියම් 🥱"* !')
-    
-const search = await fetchJson(`${searchlink}/search/yt?q=${q}`)
-const data = search.result.data[0];
-const url = data.url
-    
-const ytdl = await fetchJson(`${downlink}/ytmp3?url=${data.url}` + '&quality=3' )
-    
-let message = `*⛶𝙳𝙸𝙽𝚄𝚆𝙷 𝙼𝙳 𝚈𝚃 𝚅𝙸𝙳𝙴𝙾 𝙳𝙾𝚆𝙽𝙻𝙾𝙰𝙳𝙴𝚁⛶*
+        let response = await fetch(apiUrl);
+        let data = await response.json();
+
+        if (data.status !== 200 || !data.success || !data.result.download_url) {
+            return reply("⚠️ Failed to fetch the video. Please try again later.");
+        }
+
+        let ytmsg = `*⛶𝙳𝙸𝙽𝚄𝚆𝙷 𝙼𝙳 𝚈𝚃 𝚅𝙸𝙳𝙴𝙾 𝙳𝙾𝚆𝙽𝙻𝙾𝙰𝙳𝙴𝚁⛶*
 > 📽️🎶🔥✇━━━━━━━━━━━━━━━✇ 🔥🎶📽️  
 ╭━━━━━━━━━━━━━━━━━━━━━╮  
 ┃ 🎵 Title: ${data.title}  
@@ -49,16 +52,19 @@ let message = `*⛶𝙳𝙸𝙽𝚄𝚆𝙷 𝙼𝙳 𝚈𝚃 𝚅𝙸𝙳𝙴�
 
 📹 **Status Video Uploader Channel** 📹  
 🔗 (https://whatsapp.com/channel/0029VaxVCPi96H4VOKai4S3s)  
-━━━━━━━━━━━━━━━━━━━━━`
-  
-await conn.sendMessage(from, { image: { url : data.thumbnail }, caption: message }, { quoted : mek })
-  
-// SEND VIDEO NORMAL TYPE and DOCUMENT TYPE
-await conn.sendMessage(from, { video: { url: ytdl.data.download }, mimetype: "video/mp4" }, { quoted: mek })
-await conn.sendMessage(from, { document: { url: ytdl.data.download }, mimetype: "video/mp4", fileName: data.title + ".mp3", caption: `${data.title}`}, { quoted: mek })
-  
-} catch(e){
-console.log(e)
-reply(e)
-}
-})
+━━━━━━━━━━━━━━━━━━━━━`;
+
+        await conn.sendMessage(from, { image: { url: data.result.thumbnail || '' }, caption: ytmsg }, { quoted: mek });
+        await conn.sendMessage(from, { video: { url: data.result.download_url }, mimetype: "video/mp4" }, { quoted: mek });
+        await conn.sendMessage(from, { 
+            document: { url: data.result.download_url }, 
+            mimetype: "video/mp4", 
+            fileName: `${data.result.title}.mp4`, 
+            caption: `🎥 *${yts.title}*\n\n*🌟 Created By:* Didula Rashmika\n*🤖 Bot:* Didula MD V2`
+        }, { quoted: mek });
+
+    } catch (e) {
+        console.log(e);
+        reply("❌ An error occurred. Please try again later.");
+    }
+});
