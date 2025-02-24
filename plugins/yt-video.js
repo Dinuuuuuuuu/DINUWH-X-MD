@@ -20,17 +20,17 @@ cmd({
 
         const query = args.join(' ');
 
-        // Search for the video based on the provided query
-        const videoSearch = await yts(query);
-        if (!videoSearch || !videoSearch.all.length) {
-            return msg.reply('No results found!');
-        }
-
-        const video = videoSearch.all[0];
-        const videoUrl = video.url;
-        const videoTitle = video.title;
-
         try {
+            // Search for the video based on the provided query
+            const videoSearch = await yts(query);
+            if (!videoSearch || !videoSearch.all.length) {
+                return msg.reply('No results found!');
+            }
+
+            const video = videoSearch.all[0];
+            const videoUrl = video.url;
+            const videoTitle = video.title;
+
             // Fetch video info
             const videoInfo = await fetchJson(videoInfoAPI + encodeURIComponent(videoUrl));
             if (!videoInfo) {
@@ -47,6 +47,7 @@ cmd({
             const downloadLink = downloadLinks.download;
             return msg.reply(`Here is the download link for *${videoTitle}*:\n${downloadLink}`);
         } catch (err) {
+            console.log(err);  // Log error for debugging
             return msg.reply('Something went wrong while processing your request.');
         }
     }
