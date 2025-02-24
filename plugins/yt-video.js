@@ -22,13 +22,19 @@ cmd({
         const ytsResult = yt.videos[0];
         if (!ytsResult) return reply('❌ *No results found!*');
 
-        const videoUrl = ytsResult.url;
-        const videoInfo = await fetchJson(`${videoInfoAPI}${videoUrl}`);
-        if (!videoInfo.success) return reply('❌ *Failed to fetch video details!*');
+        const videoUrl = encodeURIComponent(ytsResult.url);
+        const apiUrl = `${videoInfoAPI}${videoUrl}`;
+
+        console.log(`🔍 Fetching video info from: ${apiUrl}`);
+
+        const videoInfo = await fetchJson(apiUrl);
+        console.log("📥 API Response:", videoInfo);
+
+        if (!videoInfo || !videoInfo.success) return reply('❌ *Failed to fetch video details!*');
 
         const { title, author, duration, thumbnail, views } = videoInfo;
 
-        let desc = `🎬 *YouTube Video Details:*\n\n📌 *Title:* ${title}\n👤 *Author:* ${author}\n⏳ *Duration:* ${duration}\n👁️ *Views:* ${views}\n🔗 *URL:* ${videoUrl}\n\n> *Select the quality to download!*\n\n1️⃣ *240p*\n2️⃣ *360p*\n3️⃣ *480p*\n4️⃣ *720p*`;
+        let desc = `🎬 *YouTube Video Details:*\n\n📌 *Title:* ${title}\n👤 *Author:* ${author}\n⏳ *Duration:* ${duration}\n👁️ *Views:* ${views}\n🔗 *URL:* ${ytsResult.url}\n\n> *Select the quality to download!*\n\n1️⃣ *240p*\n2️⃣ *360p*\n3️⃣ *480p*\n4️⃣ *720p*`;
 
         const vv = await conn.sendMessage(from, { image: { url: thumbnail }, caption: desc }, { quoted: mek });
 
@@ -53,7 +59,7 @@ cmd({
         });
 
     } catch (e) {
-        console.error(e);
+        console.error("🚨 ERROR:", e);
         reply('❌ An error occurred while processing your request.');
     }
 });
