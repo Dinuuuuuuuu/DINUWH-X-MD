@@ -15,7 +15,7 @@ cmd({
 async(conn, mek, m,{from, reply, q}) => {
 try{
 
-if(!q) return reply('Give me song name or url !')
+if(!q) return reply('*නමක් හරි url එකක් හරි දියම් 🥱"* !')
     
 const search = await fetchJson(`${searchlink}/search/yt?q=${q}`)
 const data = search.result.data[0];
@@ -23,8 +23,8 @@ const url = data.url
     
 const ytdl = await fetchJson(`${downlink}/ytmp3?url=${data.url}` + '&quality=3' )
     
-let message = `‎‎📽️🎶🔥 YT VIDEO DOWNLOADER 🔥🎶📽️  
-
+let message = `*⛶𝙳𝙸𝙽𝚄𝚆𝙷 𝙼𝙳 𝚈𝚃 𝚅𝙸𝙳𝙴𝙾 𝙳𝙾𝚆𝙽𝙻𝙾𝙰𝙳𝙴𝚁⛶*
+> 📽️🎶🔥✇━━━━━━━━━━━━━━━✇ 🔥🎶📽️  
 ╭━━━━━━━━━━━━━━━━━━━━━╮  
 ┃ 🎵 Title: ${data.title}  
 ┃ ⏳ Duration: ${data.timestamp}  
@@ -34,11 +34,10 @@ let message = `‎‎📽️🎶🔥 YT VIDEO DOWNLOADER 🔥🎶📽️
 ┃ 🔗 Watch & Download: ${data.url}  
 ╰━━━━━━━━━━━━━━━━━━━━━╯  
 
-🚀 Fast ⚡ Secure 🔐 HD Quality 🎥  
-
+🚀 Fast ⚡ Secure 🔐 HIGH Quality 🎥  
 ╭═════════════════════╮  
 ║ 🔰 POWERED BY DINUWH MD 🔰  
-║ 🔥 MADE BY DINUWH MD 🔥  
+║ 🔥 MADE BY DINUW🔥  
 ╰═════════════════════╯  
 
 📥 **Download Now & Enjoy!** 🎶  
