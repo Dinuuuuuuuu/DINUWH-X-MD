@@ -19,7 +19,6 @@ const {
     proto
 } = require('@whiskeysockets/baileys')
 const fs = require('fs')
-const { GoogleGenerativeAI } = require("@google/generative-ai");
 const P = require('pino')
 const FileType = require('file-type')
 const l = console.log
