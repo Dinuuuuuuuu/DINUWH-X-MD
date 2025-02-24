@@ -1,54 +1,39 @@
 const { cmd } = require('../command');
 const { fetchJson } = require('../lib/functions');
 const yts = require('yt-search');
+const axios = require('axios');
+const { exec } = require('child_process');
+const fs = require('fs');
+const path = require('path');
 
-const videoInfoAPI = "https://manul-ofc-ytdl-paid-30a8f429a0a6.herokuapp.com/video-info?url=";
-const downloadAPI = "https://manul-ofc-ytdl-paid-30a8f429a0a6.herokuapp.com/download/video?url=";
 
 cmd({
-    pattern: 'video',
-    alias: ["vplay"],
-    desc: 'Download YouTube Videos',
-    use: '.video <YouTube Title or URL>',
-    react: "📹",
-    category: 'media',
-    filename: __filename,
-    async handle({ msg, conn, args }) {
-        if (args.length < 1) {
-            return msg.reply('Please provide a YouTube title or URL!');
-        }
+    pattern: "video",
+    alias: ["ytvideo", "yt"],
+    description: "Download YouTube video in 360p",
+    run: async ({ m, args }) => {
+        if (!args[0]) return m.reply("🔗 Please provide a YouTube video link!");
 
-        const query = args.join(' ');
-
+        const videoUrl = args[0];
+        const apiUrl = `https://manul-ofc-ytdl-paid-30a8f429a0a6.herokuapp.com/download/video?url=${videoUrl}`;
+        
         try {
-            // Search for the video based on the provided query
-            const videoSearch = await yts(query);
-            if (!videoSearch || !videoSearch.all.length) {
-                return msg.reply('No results found!');
-            }
-
-            const video = videoSearch.all[0];
-            const videoUrl = video.url;
-            const videoTitle = video.title;
-
-            // Fetch video info
-            const videoInfo = await fetchJson(videoInfoAPI + encodeURIComponent(videoUrl));
-            if (!videoInfo) {
-                return msg.reply('Failed to fetch video details.');
-            }
-
-            // Fetch download links
-            const downloadLinks = await fetchJson(downloadAPI + encodeURIComponent(videoUrl));
-            if (!downloadLinks || !downloadLinks.download) {
-                return msg.reply('Failed to fetch download links.');
-            }
-
-            // Send download link to the user
-            const downloadLink = downloadLinks.download;
-            return msg.reply(`Here is the download link for *${videoTitle}*:\n${downloadLink}`);
-        } catch (err) {
-            console.log(err);  // Log error for debugging
-            return msg.reply('Something went wrong while processing your request.');
+            m.reply("⏳ Downloading video, please wait...");
+            
+            const response = await axios.get(apiUrl, { responseType: "arraybuffer" });
+            const filePath = path.join(__dirname, "temp", `video.mp4`);
+            
+            fs.writeFileSync(filePath, response.data);
+            
+            await m.sendMessage(m.chat, { 
+                video: fs.readFileSync(filePath), 
+                caption: "🎥 Here is your 360p video!" 
+            });
+            
+            fs.unlinkSync(filePath);
+        } catch (error) {
+            console.error(error);
+            m.reply("❌ Failed to download the video!");
         }
     }
 });
