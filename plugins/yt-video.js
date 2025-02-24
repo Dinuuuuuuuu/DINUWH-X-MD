@@ -1,71 +1,105 @@
-const { cmd, commands } = require("../command");
-const yts = require("yt-search");
-const { fetchJson } = require('../lib/functions')
+const { cmd, commands } = require('../command');
+const { fetchJson } = require('../lib/functions');
+const yts = require('yt-search');
 
-cmd({ 
-    pattern: "video", 
-    alias: ["video2", "play"], 
-    react: "🎥", 
-    desc: "Download Youtube song", 
-    category: "main", 
-    use: '.song < Yt url or Name >', 
-    filename: __filename 
-}, async (conn, mek, m, { from, prefix, quoted, q, reply }) => { 
-    try { 
-        if (!q) return await reply("⚠️ Please provide a YouTube URL or song name!");
+const domain = `https://manul-official-api-site-4a4d3aa3fe73.herokuapp.com/ytmp4?url=`;
 
-        const yt = await ytsearch(q);
-        if (yt.results.length < 1) return reply("❌ No results found!");
+//=============================================
 
-        let yts = yt.results[0];  
-        let apiUrl = `https://apis.davidcyriltech.my.id/download/ytmp4?url=${encodeURIComponent(yts.url)}`;
+cmd({
+    pattern: 'video', // Command for video
+    alias: ["vplay"],
+    desc: 'Download YouTube Videos',
+    use: '.video <YouTube Title or URL>',
+    react: "📹",
+    category: 'media',
+    filename: __filename
+},
+async (conn, mek, m, { from, quoted, body, isCmd, command, args, q, isGroup, sender, reply }) => {
+    try {
+        if (!q) return reply('❌ *Please provide a valid YouTube title or URL!*');
 
-        let response = await fetch(apiUrl);
-        let data = await response.json();
+        // Search for YouTube video using the provided title or URL
+        const yt = await yts(q);
+        const ytsResult = yt.videos[0]; // Selecting the first result
 
-        if (data.status !== 200 || !data.success || !data.result.download_url) {
-            return reply("⚠️ Failed to fetch the video. Please try again later.");
-        }
+        // Get the download URLs for different resolutions
+        const ytdl = await fetchJson(`${domain}${ytsResult.url}`);
+        const video240p = ytdl.download['240p'];
+        const video360p = ytdl.download['360p'];
+        const video480p = ytdl.download['480p'];
+        const video720p = ytdl.download['720p'];
+        const videoTitle = ytsResult.title;
+        const videoAuthor = ytsResult.author.name;
+        const videoViews = ytsResult.views;
+        const videoDuration = ytsResult.timestamp;
+        const videoThumbnail = ytsResult.thumbnail;
 
-        let ytmsg = `*⛶𝙳𝙸𝙽𝚄𝚆𝙷 𝙼𝙳 𝚈𝚃 𝚅𝙸𝙳𝙴𝙾 𝙳𝙾𝚆𝙽𝙻𝙾𝙰𝙳𝙴𝚁⛶*
-> 📽️🎶🔥✇━━━━━━━━━━━━━━━✇ 🔥🎶📽️  
-╭━━━━━━━━━━━━━━━━━━━━━╮  
-┃ 🎵 Title: ${data.title}  
-┃ ⏳ Duration: ${data.timestamp}  
-┃ 📅 Uploaded: ${data.ago}  
-┃ 👁️ Views: ${data.views}  
-┃ 🎭 Creator: ${data.author.name}  
-┃ 🔗 Watch & Download: ${data.url}  
-╰━━━━━━━━━━━━━━━━━━━━━╯  
+        // Create message with formatted details
+        let desc = `◈     *SYKO VIDEO DOWNLOADER*     ◈
+┌───────────────────
+├ *ℹ️ \`Title:\`* ${videoTitle}
+├ *👤 \`Author:\`* ${videoAuthor}
+├ *👁️‍🗨️ \`Views:\`* ${videoViews}
+├ *🕘 \`Duration:\`* ${videoDuration}
+├ *🔗 \`Url:\`* ${ytsResult.url}
+└───────────────────
 
-🚀 Fast ⚡ Secure 🔐 HIGH Quality 🎥  
-╭═════════════════════╮  
-║ 🔰 POWERED BY DINUWH MD 🔰  
-║ 🔥 MADE BY DINUW🔥  
-╰═════════════════════╯  
+> *🔢 SELECT THE VIDEO QUALITY BELOW!*
 
-📥 **Download Now & Enjoy!** 🎶  
+*1.1 📹 - 240p*
 
-━━━━━━━━━━━━━━━━━━━━━  
-📢 **Support Channel** 📢  
-🔗 [Join Now]
-(https://whatsapp.com/channel/0029Vat7xHl7NoZsrUVjN844)  
+*1.2 📹 - 360p*
 
-📹 **Status Video Uploader Channel** 📹  
-🔗 (https://whatsapp.com/channel/0029VaxVCPi96H4VOKai4S3s)  
-━━━━━━━━━━━━━━━━━━━━━`;
+*1.3 📹 - 480p*
 
-        await conn.sendMessage(from, { image: { url: data.result.thumbnail || '' }, caption: ytmsg }, { quoted: mek });
-        await conn.sendMessage(from, { video: { url: data.result.download_url }, mimetype: "video/mp4" }, { quoted: mek });
-        await conn.sendMessage(from, { 
-            document: { url: data.result.download_url }, 
-            mimetype: "video/mp4", 
-            fileName: `${data.result.title}.mp4`, 
-            caption: `🎥 *${yts.title}*\n\n*🌟 Created By:* Didula Rashmika\n*🤖 Bot:* Didula MD V2`
-        }, { quoted: mek });
+*1.4 📹 - 720p*`;
+
+        // Send the message with the video details and options
+        const vv = await conn.sendMessage(from, { image: { url: videoThumbnail }, caption: desc }, { quoted: mek });
+
+        // Listen for the user selection in the chat
+        conn.ev.on('messages.upsert', async (msgUpdate) => {
+            const msg = msgUpdate.messages[0];
+            if (!msg.message || !msg.message.extendedTextMessage) return;
+
+            const selectedOption = msg.message.extendedTextMessage.text.trim();
+
+            if (msg.message.extendedTextMessage.contextInfo && msg.message.extendedTextMessage.contextInfo.stanzaId === vv.key.id) {
+                let mass, videoUrl;
+
+                switch (selectedOption) {
+                    case '1.1':
+                        videoUrl = video240p;
+                        break;
+                    case '1.2':
+                        videoUrl = video360p;
+                        break;
+                    case '1.3':
+                        videoUrl = video480p;
+                        break;
+                    case '1.4':
+                        videoUrl = video720p;
+                        break;
+                    default:
+                        reply("❌ Invalid option selected. Please choose a valid option.");
+                        return;
+                }
+
+                // React with ⬇️ when uploading starts
+                mass = await conn.sendMessage(from, { image: { url: videoThumbnail } });
+
+                // Upload and send the selected video
+                await conn.sendMessage(from, { video: { url: videoUrl }, caption: `> *Powered by Syko Video Downloader*`, mimetype: 'video/mp4' }, { quoted: mass });
+
+                // React with ✅ once the file has been uploaded and sent
+                await conn.sendMessage(from, { react: { text: '✅', key: msg.key } });
+            }
+        });
 
     } catch (e) {
-        console.log(e);
-        reply("❌ An error occurred. Please try again later.");
+        console.error(e);
+        await conn.sendMessage(from, { react: { text: '❌', key: mek.key } });
+        reply('❌ An error occurred while processing your request.');
     }
 });
