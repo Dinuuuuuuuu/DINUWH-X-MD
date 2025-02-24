@@ -12,54 +12,42 @@ cmd({
     use: '.video <YouTube Title or URL>',
     react: "📹",
     category: 'media',
-    filename: __filename
-}, async (conn, mek, m, { from, q, reply }) => {
-    try {
-        if (!q) return reply('❌ Please provide a valid YouTube title or URL!');
+    filename: __filename,
+    async handle({ msg, conn, args }) {
+        if (args.length < 1) {
+            return msg.reply('Please provide a YouTube title or URL!');
+        }
 
-        // Search for YouTube video
-        const yt = await yts(q);
-        const ytsResult = yt.videos[0];
-        if (!ytsResult) return reply('❌ *No results found!*');
+        const query = args.join(' ');
 
-        const videoUrl = encodeURIComponent(ytsResult.url);
-        const apiUrl = `${videoInfoAPI}${videoUrl}`;
+        // Search for the video based on the provided query
+        const videoSearch = await yts(query);
+        if (!videoSearch || !videoSearch.all.length) {
+            return msg.reply('No results found!');
+        }
 
-        console.log(`🔍 Fetching video info from: ${apiUrl}`);
+        const video = videoSearch.all[0];
+        const videoUrl = video.url;
+        const videoTitle = video.title;
 
-        const videoInfo = await fetchJson(apiUrl);
-        console.log("📥 API Response:", videoInfo);
-
-        if (!videoInfo || !videoInfo.success) return reply('❌ *Failed to fetch video details!*');
-
-        const { title, author, duration, thumbnail, views } = videoInfo;
-
-        let desc = `🎬 *YouTube Video Details:*\n\n📌 *Title:* ${title}\n👤 *Author:* ${author}\n⏳ *Duration:* ${duration}\n👁️ *Views:* ${views}\n🔗 *URL:* ${ytsResult.url}\n\n> *Select the quality to download!*\n\n1️⃣ *240p*\n2️⃣ *360p*\n3️⃣ *480p*\n4️⃣ *720p*`;
-
-        const vv = await conn.sendMessage(from, { image: { url: thumbnail }, caption: desc }, { quoted: mek });
-
-        conn.ev.on('messages.upsert', async (msgUpdate) => {
-            const msg = msgUpdate.messages[0];
-            if (!msg.message || !msg.message.extendedTextMessage) return;
-
-            const selectedOption = msg.message.extendedTextMessage.text.trim();
-            if (msg.message.extendedTextMessage.contextInfo && msg.message.extendedTextMessage.contextInfo.stanzaId === vv.key.id) {
-                let videoQuality;
-                switch (selectedOption) {
-                    case '1️⃣': videoQuality = '240p'; break;
-                    case '2️⃣': videoQuality = '360p'; break;
-                    case '3️⃣': videoQuality = '480p'; break;
-                    case '4️⃣': videoQuality = '720p'; break;
-                    default: return reply('❌ Invalid option! Please select 1️⃣, 2️⃣, 3️⃣, or 4️⃣.');
-                }
-
-                const videoLink = `${downloadAPI}${videoUrl}&quality=${videoQuality}`;
-                await conn.sendMessage(from, { video: { url: videoLink }, caption: `📥 *Downloading in ${videoQuality}...*` }, { quoted: mek });
+        try {
+            // Fetch video info
+            const videoInfo = await fetchJson(videoInfoAPI + encodeURIComponent(videoUrl));
+            if (!videoInfo) {
+                return msg.reply('Failed to fetch video details.');
             }
-        });
 
-    } catch (e) {
-        console.error("🚨 ERROR:", e);
-        reply('❌ An error occurred while processing your request.');
+            // Fetch download links
+            const downloadLinks = await fetchJson(downloadAPI + encodeURIComponent(videoUrl));
+            if (!downloadLinks || !downloadLinks.download) {
+                return msg.reply('Failed to fetch download links.');
+            }
+
+            // Send download link to the user
+            const downloadLink = downloadLinks.download;
+            return msg.reply(`Here is the download link for *${videoTitle}*:\n${downloadLink}`);
+        } catch (err) {
+            return msg.reply('Something went wrong while processing your request.');
+        }
     }
 });
