@@ -1,39 +1,60 @@
-const { cmd } = require('../command');
-const { fetchJson } = require('../lib/functions');
-const yts = require('yt-search');
-const axios = require('axios');
-const { exec } = require('child_process');
-const fs = require('fs');
-const path = require('path');
+const fetch = require('node-fetch');
+const ytsearch = require('yt-search');
 
+cmd({ 
+    pattern: "video", 
+    alias: ["video2", "play"], 
+    react: "🎥", 
+    desc: "Download YouTube video", 
+    category: "main", 
+    use: '.video <YouTube URL or Name>', 
+    filename: __filename 
+}, async (conn, mek, m, { from, prefix, quoted, q, reply }) => { 
+    try { 
+        if (!q) return await reply("⚠️ Please provide a YouTube URL or video name!");
 
-cmd({
-    pattern: "video",
-    alias: ["ytvideo", "yt"],
-    description: "Download YouTube video in 360p",
-    run: async ({ m, args }) => {
-        if (!args[0]) return m.reply("🔗 Please provide a YouTube video link!");
+        const yt = await ytsearch(q);
+        if (!yt || yt.results.length < 1) return reply("❌ No results found!");
 
-        const videoUrl = args[0];
-        const apiUrl = `https://manul-ofc-ytdl-paid-30a8f429a0a6.herokuapp.com/download/video?url=${videoUrl}`;
-        
-        try {
-            m.reply("⏳ Downloading video, please wait...");
-            
-            const response = await axios.get(apiUrl, { responseType: "arraybuffer" });
-            const filePath = path.join(__dirname, "temp", `video.mp4`);
-            
-            fs.writeFileSync(filePath, response.data);
-            
-            await m.sendMessage(m.chat, { 
-                video: fs.readFileSync(filePath), 
-                caption: "🎥 Here is your 360p video!" 
-            });
-            
-            fs.unlinkSync(filePath);
-        } catch (error) {
-            console.error(error);
-            m.reply("❌ Failed to download the video!");
+        let yts = yt.results[0];  
+        let apiUrl = `https://apis.davidcyriltech.my.id/download/ytmp4?url=${encodeURIComponent(yts.url)}`;
+
+        let response = await fetch(apiUrl);
+        let data = await response.json();
+
+        if (!data || data.status !== 200 || !data.success || !data.result.download_url) {
+            return reply("⚠️ Failed to fetch the video. Please try again later.");
         }
+
+        let ytmsg = `╭━━━〔 *🌟 DINUWH MD 🌟* 〕━━━┈⊷
+┃▸╭─────────────────
+┃▸┃ 📽️ *VIDEO DOWNLOADER*
+┃▸└─────────────────···
+╰──────────────────────┈⊷
+╭━━❐━⪼
+┇📌 *Title:* ${yts.title}
+┇⏱️ *Duration:* ${yts.timestamp}
+┇👀 *Views:* ${yts.views}
+┇👤 *Author:* ${yts.author.name}
+┇🔗 *Link:* ${yts.url}
+╰━━❑━⪼
+
+*💫 Quality Video Downloader By DINUWH MD*`;
+
+        // Send Thumbnail & Info
+        await conn.sendMessage(from, { 
+            image: { url: data.result.thumbnail || '' }, 
+            caption: ytmsg 
+        }, { quoted: mek });
+
+        // Send Video
+        await conn.sendMessage(from, { 
+            video: { url: data.result.download_url }, 
+            mimetype: "video/mp4" 
+        }, { quoted: mek });
+
+    } catch (e) {
+        console.error(e);
+        reply("❌ An error occurred. Please try again later.");
     }
 });
