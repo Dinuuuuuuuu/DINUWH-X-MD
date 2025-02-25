@@ -1,8 +1,8 @@
 const { cmd } = require('../command')
 const { fetchJson } = require('../lib/functions')
 
-const searchlink = 'https://dark-yasiya-api.site' 
-const downlink = 'https://dark-shan-yt.koyeb.app/download'
+const searchlink = 'https://manul-ofc-ytdl-paid-30a8f429a0a6.herokuapp.com' 
+const downlink = 'https://manul-ofc-ytdl-paid-30a8f429a0a6.herokuapp.com/download'
 
 
 cmd({
