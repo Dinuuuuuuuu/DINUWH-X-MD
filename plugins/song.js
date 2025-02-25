@@ -1,57 +1,49 @@
-const { cmd } = require('../command')
-const yts = require('yt-search')
-const axios = require('axios')
-
-const downlink = 'https://manul-ofc-ytdl-paid-30a8f429a0a6.herokuapp.com/download/audio?url='
+const { cmd } = require('../command'); // Command Handler
+const yts = require('yt-search'); // YouTube Search API
+const axios = require('axios'); // HTTP Request Library
+const fs = require('fs');
+const path = require('path');
 
 cmd({
     pattern: "song",
     desc: "Download songs from YouTube",
     category: "download",
-    react: "🎵",
-    filename: __filename
-},
-async (conn, mek, m, { from, reply, q }) => {
-    try {
-        if (!q) return reply('Give me a song name or YouTube URL!')
-
-        let videoUrl = q
-        let title = "Unknown Song"
-
-        // If input is a search term, search on YouTube
-        if (!q.includes('youtube.com') && !q.includes('youtu.be')) {
-            const searchResults = await yts(q)
-            if (!searchResults.videos.length) return reply('No results found!')
-
-            const data = searchResults.videos[0]
-            videoUrl = data.url
-            title = data.title
-
-            let msg = `🎵 *YT SONG DOWNLOADER* 🎵\n\n📌 *Title:* ${data.title}\n⏱ *Duration:* ${data.timestamp}\n📅 *Uploaded:* ${data.ago}\n📺 *Views:* ${data.views}\n🎤 *Channel:* ${data.author.name}\n🔗 *URL:* ${data.url}`
-
-            await conn.sendMessage(from, { image: { url: data.thumbnail }, caption: msg }, { quoted: mek })
+    async handler(m, { conn, text }) {
+        if (!text) {
+            return m.reply("Please provide a song name!");
         }
 
-        // Constructing the download URL
-        const audioUrl = `${downlink}${encodeURIComponent(videoUrl)}`
-        console.log('Requesting download from:', audioUrl)
+        // Searching for the song on YouTube
+        const songName = text;
+        const results = await yts(songName);
 
-        // Fetching the audio file from the API
-        const response = await axios.get(audioUrl, { responseType: 'arraybuffer' })
+        // If no results found
+        if (results && results.videos.length === 0) {
+            return m.reply('Sorry, no results found for this song!');
+        }
 
-        if (!response.data) return reply('Download failed!')
+        const songUrl = results.videos[0].url; // Getting the first video URL
 
-        // Check if file is valid
-        if (response.data.length < 1000) return reply('File is too small or failed to download!')
+        // Prepare the API URL for downloading the song
+        const apiUrl = `https://manul-ofc-ytdl-paid-30a8f429a0a6.herokuapp.com/download/audio?url=${encodeURIComponent(songUrl)}`;
 
-        // Send as Audio Message
-        await conn.sendMessage(from, { audio: response.data, mimetype: "audio/mp3", ptt: false }, { quoted: mek })
+        try {
+            // Fetch audio file
+            const response = await axios.get(apiUrl, { responseType: 'arraybuffer' });
+            const audioBuffer = Buffer.from(response.data, 'binary');
 
-        // Send as Document (MP3 format)
-        await conn.sendMessage(from, { document: response.data, mimetype: "audio/mp3", fileName: `${title}.mp3`, caption: `🎶 *${title}*` }, { quoted: mek })
+            // Save audio file
+            const audioPath = path.join(__dirname, 'song.mp3');
+            fs.writeFileSync(audioPath, audioBuffer);
 
-    } catch (e) {
-        console.log(e)
-        reply('Error downloading the song. Try again!')
+            // Send the audio to the user
+            await conn.sendMessage(m.from, fs.readFileSync(audioPath), 'audio', { mimetype: 'audio/mp4', caption: `Here is your song: ${songName}` });
+
+            // Clean up the saved audio file
+            fs.unlinkSync(audioPath);
+        } catch (error) {
+            console.error('Error downloading song:', error);
+            m.reply('Sorry, there was an error downloading the song!');
+        }
     }
-})
+});
