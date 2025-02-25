@@ -41,4 +41,3 @@ cmd({
     }
 });
 
-module.exports = { cmd };
