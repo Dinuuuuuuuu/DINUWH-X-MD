@@ -18,7 +18,7 @@ cmd({
         if (yt.videos.length < 1) return reply("❌ No results found!");
 
         let yts = yt.videos[0];  
-        let apiUrl = `https://apis.davidcyriltech.my.id/download/ytmp3?url=${encodeURIComponent(yts.url)}`;
+        let apiUrl = `https://manul-ofc-ytdl-paid-30a8f429a0a6.herokuapp.com/download/audio?url=${encodeURIComponent(yts.url)}`;
 
         let response = await fetch(apiUrl);
         let data = await response.json();
@@ -27,7 +27,6 @@ cmd({
             return reply("⚠️ Failed to fetch the audio. Please try again later.");
         }
 
-        let audioUrl = data.result.download_url;
         let ytmsg = `╭━━━〔 *🌟 DINUWH MD 🌟* 〕━━━┈⊷
 ┃▸╭─────────────────
 ┃▸┃ 🎵 *AUDIO DOWNLOADER*
@@ -46,18 +45,18 @@ cmd({
         await conn.sendMessage(from, { image: { url: yts.thumbnail || '' }, caption: ytmsg }, { quoted: mek });
 
         // Send as audio
-        await conn.sendMessage(from, { audio: { url: audioUrl }, mimetype: "audio/mpeg", ptt: false }, { quoted: mek });
+        await conn.sendMessage(from, { audio: { url: data.result.download_url }, mimetype: "audio/mp3", ptt: false }, { quoted: mek });
 
         // Send as document
         await conn.sendMessage(from, { 
-            document: { url: audioUrl }, 
-            mimetype: "audio/mpeg", 
+            document: { url: data.result.download_url }, 
+            mimetype: "audio/mp3", 
             fileName: `${yts.title}.mp3`, 
             caption: `🎵 *${yts.title}*\n\n*🌟 Created By:* DINUWH\n*🤖 Bot:* DINUWH MD`
         }, { quoted: mek });
 
         // Send as voice note (ptt: true)
-        await conn.sendMessage(from, { audio: { url: audioUrl }, mimetype: "audio/mpeg", ptt: true }, { quoted: mek });
+        await conn.sendMessage(from, { audio: { url: data.result.download_url }, mimetype: "audio/mp3", ptt: true }, { quoted: mek });
 
         // Send final message
         await reply("✅ *Thanks for using my bot!*");
