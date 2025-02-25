@@ -1,6 +1,5 @@
 const { cmd } = require('../command')
 const yts = require('yt-search');
-const fg = require('api-dylux');
 const axios = require('axios');
 
 cmd({
@@ -29,16 +28,24 @@ cmd({
 
         await conn.sendMessage(from, { image: { url: data.thumbnail }, caption: desc }, { quoted: mek });
 
-        // **Download Audio (MP3)**
-        let down = await fg.yta(url);
-        let downloadUrl = down.dl_url;
+        // **Fetch MP3 from Custom API**
+        let apiUrl = `https://manul-ofc-api-site-afeb13f3dabf.herokuapp.com/ytmp3-fix?url=${url}`;
+        let response = await axios.get(apiUrl);
+        
+        if (!response.data || !response.data.result || !response.data.result.audio) {
+            return reply('❌ *Failed to fetch the MP3 file. Try again later.*');
+        }
+
+        let downloadUrl = response.data.result.audio;
+
+        // **Send Audio File**
         await conn.sendMessage(from, { 
             audio: { url: downloadUrl }, 
             mimetype: 'audio/mpeg',
             caption: `*🎶 Enjoy your song!*`
         }, { quoted: mek });
 
-        // **Download as Document**
+        // **Send as Document**
         await conn.sendMessage(from, { 
             document: { url: downloadUrl }, 
             mimetype: 'audio/mpeg',
