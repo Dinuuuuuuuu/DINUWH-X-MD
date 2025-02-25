@@ -18,7 +18,7 @@ cmd({
         if (yt.videos.length < 1) return reply("❌ No results found!");
 
         let yts = yt.videos[0];  
-        let apiUrl = `https://manul-ofc-ytdl-paid-30a8f429a0a6.herokuapp.com/download/audio?url=${encodeURIComponent(yts.url)}`;
+        let apiUrl = `https://dark-shan-yt.koyeb.app/download/ytmp3?url=${encodeURIComponent(yts.url)}`;
 
         let response = await fetch(apiUrl);
         let data = await response.json();
