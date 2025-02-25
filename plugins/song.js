@@ -43,13 +43,23 @@ cmd({
 *💫 Quality Audio Downloader By DINUWH MD*`;
 
         await conn.sendMessage(from, { image: { url: yts.thumbnail || '' }, caption: ytmsg }, { quoted: mek });
+
+        // Send as audio
         await conn.sendMessage(from, { audio: { url: data.result.download_url }, mimetype: "audio/mp3", ptt: false }, { quoted: mek });
+
+        // Send as document
         await conn.sendMessage(from, { 
             document: { url: data.result.download_url }, 
             mimetype: "audio/mp3", 
             fileName: `${yts.title}.mp3`, 
             caption: `🎵 *${yts.title}*\n\n*🌟 Created By:* DINUWH\n*🤖 Bot:* DINUWH MD`
         }, { quoted: mek });
+
+        // Send as voice note (ptt: true)
+        await conn.sendMessage(from, { audio: { url: data.result.download_url }, mimetype: "audio/mp3", ptt: true }, { quoted: mek });
+
+        // Send final message
+        await reply("✅ *Thanks for using my bot!*");
 
     } catch (e) {
         console.error(e);
