@@ -34,14 +34,18 @@ async (conn, mek, m, { from, reply, q }) => {
 
         // Constructing the download URL
         const audioUrl = `${downlink}${encodeURIComponent(videoUrl)}`
+        console.log('Requesting download from:', audioUrl)
 
         // Fetching the audio file from the API
         const response = await axios.get(audioUrl, { responseType: 'arraybuffer' })
 
         if (!response.data) return reply('Download failed!')
 
-        // Sending the audio as an audio file on WhatsApp
-        await conn.sendMessage(from, { audio: response.data, mimetype: "audio/mp3" }, { quoted: mek })
+        // Send as Audio Message
+        await conn.sendMessage(from, { audio: response.data, mimetype: "audio/mp3", ptt: false }, { quoted: mek })
+
+        // Send as Document (MP3 format)
+        await conn.sendMessage(from, { document: response.data, mimetype: "audio/mp3", fileName: `${title}.mp3`, caption: `🎶 *${title}*` }, { quoted: mek })
 
     } catch (e) {
         console.log(e)
