@@ -1,47 +1,58 @@
 const { cmd } = require('../command')
-const { fetchJson } = require('../lib/functions')
+const fetch = require("node-fetch");
+const ytsearch = require("yt-search");
 
-const searchlink = 'https://manul-ofc-ytdl-paid-30a8f429a0a6.herokuapp.com' 
-const downlink = 'https://manul-ofc-ytdl-paid-30a8f429a0a6.herokuapp.com/download'
+cmd({ 
+    pattern: "video", 
+    alias: ["video2", "play"], 
+    react: "🎥", 
+    desc: "Download YouTube video", 
+    category: "download", 
+    use: '.video <YouTube URL or Name>', 
+    filename: __filename 
+}, async (conn, mek, m, { from, prefix, quoted, q, reply }) => { 
+    try { 
+        if (!q) return await reply("⚠️ Please provide a YouTube URL or song name!");
 
+        const yt = await ytsearch(q);
+        if (yt.videos.length < 1) return reply("❌ No results found!");
 
-cmd({
-    pattern: "video",
-    desc: "download videos.",
-    category: "download",
-    react: "📸",
-    filename: __filename
-},
-async(conn, mek, m,{from, reply, q}) => {
-try{
+        let yts = yt.videos[0];  
+        let apiUrl = `https://apis.davidcyriltech.my.id/download/ytmp4?url=${encodeURIComponent(yts.url)}`;
 
-if(!q) return reply('Give me song name or url !')
-    
-const search = await fetchJson(`${searchlink}/search/yt?q=${q}`)
-const data = search.result.data[0];
-const url = data.url
-    
-const ytdl = await fetchJson(`${downlink}/ytmp3?url=${data.url}` + '&quality=3' )
-    
-let message = `‎‎           
- 📷 YT VIDEO DOWNLOADER 📷
+        let response = await fetch(apiUrl);
+        let data = await response.json();
 
+        if (!data || data.status !== 200 || !data.result || !data.result.download_url) {
+            return reply("⚠️ Failed to fetch the video. Please try again later.");
+        }
 
- 🎵 ‎Title: ${data.title}
- ⏱ Duration: ${data.timestamp}
- 🌏 Uploaded: ${data.ago}
- 🧿 Views: ${data.views}
- 🤵 Author: ${data.author.name}
- 📎 Url: ${data.url}`
-  
-await conn.sendMessage(from, { image: { url : data.thumbnail }, caption: message }, { quoted : mek })
-  
-// SEND VIDEO NORMAL TYPE and DOCUMENT TYPE
-await conn.sendMessage(from, { video: { url: ytdl.data.download }, mimetype: "video/mp4" }, { quoted: mek })
-await conn.sendMessage(from, { document: { url: ytdl.data.download }, mimetype: "video/mp4", fileName: data.title + ".mp3", caption: `${data.title}`}, { quoted: mek })
-  
-} catch(e){
-console.log(e)
-reply(e)
-}
-})
+        let ytmsg = `╭━━━〔 *🌟 DINUWH MD 🌟* 〕━━━┈⊷
+┃▸╭─────────────────
+┃▸┃ 📽️ *VIDEO DOWNLOADER*
+┃▸└─────────────────···
+╰──────────────────────┈⊷
+╭━━❐━⪼
+┇📌 *Title:* ${yts.title}
+┇⏱️ *Duration:* ${yts.timestamp}
+┇👀 *Views:* ${yts.views}
+┇👤 *Author:* ${yts.author.name}
+┇🔗 *Link:* ${yts.url}
+╰━━❑━⪼
+
+*💫 Quality Video Downloader By DINUWH MD*`;
+
+        await conn.sendMessage(from, { image: { url: yts.thumbnail || '' }, caption: ytmsg }, { quoted: mek });
+        await conn.sendMessage(from, { video: { url: data.result.download_url }, mimetype: "video/mp4" }, { quoted: mek });
+        await conn.sendMessage(from, { 
+            document: { url: data.result.download_url }, 
+            mimetype: "video/mp4", 
+            fileName: `${yts.title}.mp4`, 
+            caption: `🎥 *${yts.title}*\n\n*🌟 Created By:* DINUWH MD\n*🤖 Bot:* DINUWH MD`
+        }, { quoted: mek });
+
+    } catch (e) {
+        console.error(e);
+        reply("❌ An error occurred. Please try again later.");
+    }
+});
