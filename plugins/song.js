@@ -1,5 +1,5 @@
-const { cmd } = require('../command')
-const fetch = require('node-fetch');
+const { cmd } = require("../command");
+const { fetchJson } = require("../lib/functions");
 const yts = require('yt-search');
 const axios = require('axios');
 
