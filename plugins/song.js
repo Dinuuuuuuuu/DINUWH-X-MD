@@ -1,49 +1,48 @@
-const { cmd } = require('../command'); // Command Handler
-const yts = require('yt-search'); // YouTube Search API
-const axios = require('axios'); // HTTP Request Library
-const fs = require('fs');
-const path = require('path');
+const { cmd } = require('../command')
+const { fetchJson } = require('../lib/functions')
+
+const searchlink = 'https://dark-yasiya-api.site' 
+const downlink = 'https://dark-shan-yt.koyeb.app/download'
+
+
 
 cmd({
     pattern: "song",
-    desc: "Download songs from YouTube",
+    desc: "download songs.",
     category: "download",
-    async handler(m, { conn, text }) {
-        if (!text) {
-            return m.reply("Please provide a song name!");
-        }
+    react: "🎧",
+    filename: __filename
+},
+async(conn, mek, m,{from, reply, q}) => {
+try{
 
-        // Searching for the song on YouTube
-        const songName = text;
-        const results = await yts(songName);
+if(!q) return reply('Give me song name or url !')
+    
+const search = await fetchJson(`${searchlink}/search/yt?q=${q}`)
+const data = search.result.data[0];
+const url = data.url
+    
+const ytdl = await fetchJson(`${downlink}/ytmp3?url=${data.url}` + '&quality=3' )
+    
+let message = `‎‎           
+ 🎶 YT SONG DOWNLOADER 🎶
 
-        // If no results found
-        if (results && results.videos.length === 0) {
-            return m.reply('Sorry, no results found for this song!');
-        }
 
-        const songUrl = results.videos[0].url; // Getting the first video URL
-
-        // Prepare the API URL for downloading the song
-        const apiUrl = `https://manul-ofc-ytdl-paid-30a8f429a0a6.herokuapp.com/download/audio?url=${encodeURIComponent(songUrl)}`;
-
-        try {
-            // Fetch audio file
-            const response = await axios.get(apiUrl, { responseType: 'arraybuffer' });
-            const audioBuffer = Buffer.from(response.data, 'binary');
-
-            // Save audio file
-            const audioPath = path.join(__dirname, 'song.mp3');
-            fs.writeFileSync(audioPath, audioBuffer);
-
-            // Send the audio to the user
-            await conn.sendMessage(m.from, fs.readFileSync(audioPath), 'audio', { mimetype: 'audio/mp4', caption: `Here is your song: ${songName}` });
-
-            // Clean up the saved audio file
-            fs.unlinkSync(audioPath);
-        } catch (error) {
-            console.error('Error downloading song:', error);
-            m.reply('Sorry, there was an error downloading the song!');
-        }
-    }
-});
+ 🎵 ‎Title: ${data.title}
+ ⏱ Duration: ${data.timestamp}
+ 🌏 Uploaded: ${data.ago}
+ 🧿 Views: ${data.views}
+ 🤵 Author: ${data.author.name}
+ 📎 Url: ${data.url}`
+  
+await conn.sendMessage(from, { image: { url : data.thumbnail }, caption: message }, { quoted : mek })
+  
+// SEND AUDIO NORMAL TYPE and DOCUMENT TYPE
+await conn.sendMessage(from, { audio: { url: ytdl.data.download }, mimetype: "audio/mpeg" }, { quoted: mek })
+await conn.sendMessage(from, { document: { url: ytdl.data.download }, mimetype: "audio/mpeg", fileName: data.title + ".mp3", caption: `${data.title}`}, { quoted: mek })
+  
+} catch(e){
+console.log(e)
+reply(e)
+}
+})
