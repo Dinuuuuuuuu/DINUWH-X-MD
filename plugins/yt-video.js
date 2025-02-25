@@ -17,7 +17,7 @@ cmd({
         if (yt.results.length < 1) return reply("❌ No results found!");
 
         let yts = yt.results[0];  
-        let apiUrl = `https://apis.davidcyriltech.my.id/download/ytmp4?url=${encodeURIComponent(yts.url)}`;
+        let apiUrl = `https://manul-ofc-ytdl-paid-30a8f429a0a6.herokuapp.com/download/video?url=${encodeURIComponent(yts.url)}`;
 
         let response = await fetch(apiUrl);
         let data = await response.json();
