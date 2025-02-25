@@ -18,7 +18,7 @@ cmd({
         if (yt.videos.length < 1) return reply("❌ No results found!");
 
         let yts = yt.videos[0];  
-        let apiUrl = `https://dark-shan-yt.koyeb.app/download/ytmp3?url=${encodeURIComponent(yts.url)}`;
+        let apiUrl = `https://apis.davidcyriltech.my.id/download/ytmp4?url=$}`;
 
         let response = await fetch(apiUrl);
         let data = await response.json();
