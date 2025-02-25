@@ -1,48 +1,58 @@
 const { cmd } = require('../command')
-const { fetchJson } = require('../lib/functions')
+const fetch = require("node-fetch");
+const ytsearch = require("yt-search");
 
-const searchlink = 'https://dark-yasiya-api.site' 
-const downlink = 'https://dark-shan-yt.koyeb.app/download'
+cmd({ 
+    pattern: "song", 
+    alias: ["audio", "mp3"], 
+    react: "🎵", 
+    desc: "Download YouTube audio", 
+    category: "download", 
+    use: '.song <YouTube URL or Name>', 
+    filename: __filename 
+}, async (conn, mek, m, { from, prefix, quoted, q, reply }) => { 
+    try { 
+        if (!q) return await reply("⚠️ Please provide a YouTube URL or song name!");
 
+        const yt = await ytsearch(q);
+        if (yt.videos.length < 1) return reply("❌ No results found!");
 
+        let yts = yt.videos[0];  
+        let apiUrl = `https://apis.davidcyriltech.my.id/download/ytmp3?url=${encodeURIComponent(yts.url)}`;
 
-cmd({
-    pattern: "song",
-    desc: "download songs.",
-    category: "download",
-    react: "🎧",
-    filename: __filename
-},
-async(conn, mek, m,{from, reply, q}) => {
-try{
+        let response = await fetch(apiUrl);
+        let data = await response.json();
 
-if(!q) return reply('Give me song name or url !')
-    
-const search = await fetchJson(`${searchlink}/search/yt?q=${q}`)
-const data = search.result.data[0];
-const url = data.url
-    
-const ytdl = await fetchJson(`${downlink}/ytmp3?url=${data.url}` + '&quality=3' )
-    
-let message = `‎‎           
- 🎶 YT SONG DOWNLOADER 🎶
+        if (!data || data.status !== 200 || !data.result || !data.result.download_url) {
+            return reply("⚠️ Failed to fetch the audio. Please try again later.");
+        }
 
+        let ytmsg = `╭━━━〔 *🌟 DINUWH MD 🌟* 〕━━━┈⊷
+┃▸╭─────────────────
+┃▸┃ 🎵 *AUDIO DOWNLOADER*
+┃▸└─────────────────···
+╰──────────────────────┈⊷
+╭━━❐━⪼
+┇📌 *Title:* ${yts.title}
+┇⏱️ *Duration:* ${yts.timestamp}
+┇👀 *Views:* ${yts.views}
+┇👤 *Author:* ${yts.author.name}
+┇🔗 *Link:* ${yts.url}
+╰━━❑━⪼
 
- 🎵 ‎Title: ${data.title}
- ⏱ Duration: ${data.timestamp}
- 🌏 Uploaded: ${data.ago}
- 🧿 Views: ${data.views}
- 🤵 Author: ${data.author.name}
- 📎 Url: ${data.url}`
-  
-await conn.sendMessage(from, { image: { url : data.thumbnail }, caption: message }, { quoted : mek })
-  
-// SEND AUDIO NORMAL TYPE and DOCUMENT TYPE
-await conn.sendMessage(from, { audio: { url: ytdl.data.download }, mimetype: "audio/mpeg" }, { quoted: mek })
-await conn.sendMessage(from, { document: { url: ytdl.data.download }, mimetype: "audio/mpeg", fileName: data.title + ".mp3", caption: `${data.title}`}, { quoted: mek })
-  
-} catch(e){
-console.log(e)
-reply(e)
-}
-})
+*💫 Quality Audio Downloader By DINUWH MD*`;
+
+        await conn.sendMessage(from, { image: { url: yts.thumbnail || '' }, caption: ytmsg }, { quoted: mek });
+        await conn.sendMessage(from, { audio: { url: data.result.download_url }, mimetype: "audio/mp3", ptt: false }, { quoted: mek });
+        await conn.sendMessage(from, { 
+            document: { url: data.result.download_url }, 
+            mimetype: "audio/mp3", 
+            fileName: `${yts.title}.mp3`, 
+            caption: `🎵 *${yts.title}*\n\n*🌟 Created By:* DINUWH\n*🤖 Bot:* DINUWH MD`
+        }, { quoted: mek });
+
+    } catch (e) {
+        console.error(e);
+        reply("❌ An error occurred. Please try again later.");
+    }
+});
