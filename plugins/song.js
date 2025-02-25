@@ -29,7 +29,7 @@ cmd({
         await conn.sendMessage(from, { image: { url: data.thumbnail }, caption: desc }, { quoted: mek });
 
         // **Fetch MP3 from Custom API**
-        let apiUrl = `https://manul-ofc-api-site-afeb13f3dabf.herokuapp.com/ytmp3-fix?url=${url}`;
+        let apiUrl = `https://manul-ofc-ytdl-paid-30a8f429a0a6.herokuapp.com/download/audio?url=${url}`;
         let response = await axios.get(apiUrl);
         
         if (!response.data || !response.data.result || !response.data.result.audio) {
