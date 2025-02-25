@@ -1,40 +1,69 @@
 const { cmd } = require('../command')
-const axios = require('axios');
-const fs = require('fs');
-const path = require('path');
+const fetch = require("node-fetch");
+const ytsearch = require("yt-search");
 
-module.exports = {
-    name: "song",
-    alias: ["ytmp3", "ytaudio"],
-    desc: "Download audio from YouTube",
-    category: "Media",
-    usage: ".song <YouTube URL>",
-    react: "🎵",
-    start: async (bot, m, { text, prefix, pushName }) => {
-        if (!text) return m.reply(`🔍 *Usage:* \n\`${prefix}song <YouTube URL>\``);
+cmd({ 
+    pattern: "song", 
+    alias: ["audio", "mp3"], 
+    react: "🎵", 
+    desc: "Download YouTube audio", 
+    category: "download", 
+    use: '.song <YouTube URL or Name>', 
+    filename: __filename 
+}, async (conn, mek, m, { from, prefix, quoted, q, reply }) => { 
+    try { 
+        if (!q) return await reply("⚠️ Please provide a YouTube URL or song name!");
 
-        console.log(`🎵 ${pushName} used .song command with URL: ${text}`);
+        const yt = await ytsearch(q);
+        if (yt.videos.length < 1) return reply("❌ No results found!");
 
-        try {
-            let apiUrl = `https://manul-ofc-ytdl-paid-30a8f429a0a6.herokuapp.com/download/audio?url=${encodeURIComponent(text)}`;
-            console.log(`🔗 API URL: ${apiUrl}`);
+        let yts = yt.videos[0];  
+        let apiUrl = `https://apis.davidcyriltech.my.id/download/ytmp3?url=${encodeURIComponent(yts.url)}`;
 
-            m.reply("⏳ *Downloading... Please wait!*");
+        let response = await fetch(apiUrl);
+        let data = await response.json();
 
-            let { data } = await axios.get(apiUrl, { responseType: "arraybuffer" });
-
-            let filePath = path.join(__dirname, "..", "temp", `song_${Date.now()}.mp3`);
-            fs.writeFileSync(filePath, data);
-
-            console.log(`✅ Downloaded audio saved at: ${filePath}`);
-
-            await bot.sendMessage(m.from, { audio: fs.readFileSync(filePath), mimetype: "audio/mp4" }, { quoted: m });
-
-            fs.unlinkSync(filePath);
-            console.log(`🗑️ Deleted temp file: ${filePath}`);
-        } catch (error) {
-            console.error("❌ Error downloading audio:", error);
-            m.reply("❌ *Failed to download audio. Check the link and try again!*");
+        if (!data || data.status !== 200 || !data.result || !data.result.download_url) {
+            return reply("⚠️ Failed to fetch the audio. Please try again later.");
         }
-    },
-};
+
+        let audioUrl = data.result.download_url;
+        let ytmsg = `╭━━━〔 *🌟 DINUWH MD 🌟* 〕━━━┈⊷
+┃▸╭─────────────────
+┃▸┃ 🎵 *AUDIO DOWNLOADER*
+┃▸└─────────────────···
+╰──────────────────────┈⊷
+╭━━❐━⪼
+┇📌 *Title:* ${yts.title}
+┇⏱️ *Duration:* ${yts.timestamp}
+┇👀 *Views:* ${yts.views}
+┇👤 *Author:* ${yts.author.name}
+┇🔗 *Link:* ${yts.url}
+╰━━❑━⪼
+
+*💫 Quality Audio Downloader By DINUWH MD*`;
+
+        await conn.sendMessage(from, { image: { url: yts.thumbnail || '' }, caption: ytmsg }, { quoted: mek });
+
+        // Send as audio
+        await conn.sendMessage(from, { audio: { url: audioUrl }, mimetype: "audio/mpeg", ptt: false }, { quoted: mek });
+
+        // Send as document
+        await conn.sendMessage(from, { 
+            document: { url: audioUrl }, 
+            mimetype: "audio/mpeg", 
+            fileName: `${yts.title}.mp3`, 
+            caption: `🎵 *${yts.title}*\n\n*🌟 Created By:* DINUWH\n*🤖 Bot:* DINUWH MD`
+        }, { quoted: mek });
+
+        // Send as voice note (ptt: true)
+        await conn.sendMessage(from, { audio: { url: audioUrl }, mimetype: "audio/mpeg", ptt: true }, { quoted: mek });
+
+        // Send final message
+        await reply("✅ *Thanks for using my bot!*");
+
+    } catch (e) {
+        console.error(e);
+        reply("❌ An error occurred. Please try again later.");
+    }
+});
