@@ -41,6 +41,9 @@ async (conn, mek, m, { from, reply, q }) => {
 
         if (!response.data) return reply('Download failed!')
 
+        // Check if file is valid
+        if (response.data.length < 1000) return reply('File is too small or failed to download!')
+
         // Send as Audio Message
         await conn.sendMessage(from, { audio: response.data, mimetype: "audio/mp3", ptt: false }, { quoted: mek })
 
