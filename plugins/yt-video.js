@@ -1,6 +1,6 @@
 const { cmd } = require('../command')
 const { fetchJson } = require('../lib/functions')
-const yts = requre('yt-search')
+
 const downlink = 'https://manul-ofc-ytdl-paid-30a8f429a0a6.herokuapp.com/download/video?url=$'
 
 
