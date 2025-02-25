@@ -1,34 +1,32 @@
-const { cmd } = require('../command');
-const fetch = require('node-fetch');
-const ytsearch = require('yt-search');
+const { cmd } = require('../command')
+const { fetchJson } = require('../lib/functions')
 
-cmd({
-    pattern: "video",
-    alias: ["video2", "play"],
-    react: "🎥",
-    desc: "Download YouTube video",
-    category: "main",
-    use: '.video <YouTube URL or Name>',
-    filename: __filename
-}, async (conn, mek, m, { from, prefix, quoted, q, reply }) => {
-    try {
-        if (!q) return await reply("⚠️ Please provide a YouTube URL or video name!");
+cmd({ 
+    pattern: "video", 
+    alias: ["video2", "play"], 
+    react: "🎥", 
+    desc: "Download Youtube song", 
+    category: "main", 
+    use: '.song < Yt url or Name >', 
+    filename: __filename 
+}, async (conn, mek, m, { from, prefix, quoted, q, reply }) => { 
+    try { 
+        if (!q) return await reply("⚠️ Please provide a YouTube URL or song name!");
 
         const yt = await ytsearch(q);
-        if (!yt || yt.results.length < 1) return reply("❌ No results found! Please try again.");
+        if (yt.results.length < 1) return reply("❌ No results found!");
 
-        let yts = yt.results[0];
+        let yts = yt.results[0];  
         let apiUrl = `https://apis.davidcyriltech.my.id/download/ytmp4?url=${encodeURIComponent(yts.url)}`;
 
         let response = await fetch(apiUrl);
-        if (!response.ok) throw new Error("API request failed!");
-
         let data = await response.json();
-        if (!data || data.status !== 200 || !data.success || !data.result.download_url) {
+
+        if (data.status !== 200 || !data.success || !data.result.download_url) {
             return reply("⚠️ Failed to fetch the video. Please try again later.");
         }
 
-        let ytmsg = `╭━━━〔 *🌟 DINUWH MD 🌟* 〕━━━┈⊷
+        let ytmsg = `╭━━━〔 *🌟 DIDULA MD V2 🌟* 〕━━━┈⊷
 ┃▸╭─────────────────
 ┃▸┃ 📽️ *VIDEO DOWNLOADER*
 ┃▸└─────────────────···
@@ -41,22 +39,19 @@ cmd({
 ┇🔗 *Link:* ${yts.url}
 ╰━━❑━⪼
 
-*💫 Quality Video Downloader By DINUWH MD*`;
+*💫 Quality Video Downloader By Didula MD V2*`;
 
-        // Send Thumbnail & Info
-        await conn.sendMessage(from, {
-            image: { url: data.result.thumbnail || '' },
-            caption: ytmsg
-        }, { quoted: mek });
-
-        // Send Video
-        await conn.sendMessage(from, {
-            video: { url: data.result.download_url },
-            mimetype: "video/mp4"
+        await conn.sendMessage(from, { image: { url: data.result.thumbnail || '' }, caption: ytmsg }, { quoted: mek });
+        await conn.sendMessage(from, { video: { url: data.result.download_url }, mimetype: "video/mp4" }, { quoted: mek });
+        await conn.sendMessage(from, { 
+            document: { url: data.result.download_url }, 
+            mimetype: "video/mp4", 
+            fileName: `${data.result.title}.mp4`, 
+            caption: `🎥 *${yts.title}*\n\n*🌟 Created By:* Didula Rashmika\n*🤖 Bot:* Didula MD V2`
         }, { quoted: mek });
 
     } catch (e) {
-        console.error("Error:", e);
+        console.log(e);
         reply("❌ An error occurred. Please try again later.");
     }
 });
