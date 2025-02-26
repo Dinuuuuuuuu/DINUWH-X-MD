@@ -1,7 +1,7 @@
 const { cmd } = require('../command');
 const fetch = require("node-fetch");
 const ytsearch = require("yt-search");
-const apiUrl = `https://manul-ofc-api-site-afeb13f3dabf.herokuapp.com/ytmp3-fix?url=`
+const apiUrl = `https://manul-official-api-site-2025-bc8a57492a5f.herokuapp.com/ytmp3-fix?url`
 cmd({ 
     pattern: "song", 
     alias: ["audio", "mp3"], 
@@ -18,7 +18,7 @@ cmd({
         if (!yt.videos.length) return reply("❌ No results found!");
 
         let yts = yt.videos[0];  
-        let apiUrl = `https://manul-ofc-api-site-afeb13f3dabf.herokuapp.com/ytmp3-fix?url=${encodeURIComponent(yts.url)}`;
+        let apiUrl = `https://manul-official-api-site-2025-bc8a57492a5f.herokuapp.com/ytmp3-fix?url=${encodeURIComponent(yts.url)}`;
 
         let response = await fetch(apiUrl);
         let data = await response.json();
