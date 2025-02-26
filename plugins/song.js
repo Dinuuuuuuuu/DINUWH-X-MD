@@ -1,57 +1,81 @@
-const config = require('../config');
-const { cmd } = require('../command');
-const fetch = require('node-fetch');
+const { cmd, commands } = require("../command");
+const yts = require("yt-search");
+const { ytmp3 } = require("@zulproject/ytdl");
 
-cmd({
-    pattern: "ytmp3",
-    category: "downloader",
-    react: "🎧",
-    desc: "Download YouTube audios as MP3",
-    filename: __filename
+cmd(
+{
+    pattern: "song",
+    alias: "ytmp3",
+    react: "🎵",
+    desc: "Download Song",
+    category: "download",
+    filename: __filename,
 },
-async (conn, mek, m, { from, quoted, q, reply }) => {
+async (
+    robin,
+    mek,
+    m,
+    {
+        from,
+        quoted,
+        q,
+        reply,
+    }
+) => {
     try {
-        if (!q) return await reply('❌ Please provide a YouTube video URL or song name.');
+        if (!q) return reply("🔍 *නමක් හරි ලින්ක් එකක් හරි දෙන්න!*");
 
-        const url = encodeURIComponent(q);
-        const response = await fetch(`https://dark-shan-yt.koyeb.app/download/ytmp3?url=${url}`);
-        const data = await response.json();
+        // YouTube Video Search  
+        const search = await yts(q);
+        if (!search.videos.length) return reply("❌ *Video not found!*");
 
-        if (!data.status) return await reply('⚠️ Failed to fetch audio details. Please check the URL and try again.');
+        const data = search.videos[0];
+        const url = data.url;
 
-        const audio = data.data;
-        const message = `
-🎶 *YouTube MP3 Downloader* 📥
+        // Song metadata description  
+        let desc = `🎵 *DINUWH MD Song Downloader* 🎵
+━━━━━━━━━━━━━━━━━━━━━
+🎶 *Title:* ${data.title}
+⏳ *Duration:* ${data.timestamp}
+📅 *Uploaded:* ${data.ago}
+👀 *Views:* ${data.views}
+🔗 *Listen Here:* ${data.url}
+━━━━━━━━━━━━━━━━━━━━━
+⏳ *Fetching & Downloading...*`;
 
-🎵 *Title:* ${audio.title}
-🕒 *Duration:* ${audio.timestump || 'N/A'}
-📅 *Uploaded:* ${audio.ago || 'N/A'}
-👁 *Views:* ${audio.views || 'N/A'}
-👍 *Likes:* ${audio.likes || 'N/A'}
-📎 *URL:* ${q}
-`;
+        // Send metadata message  
+        await robin.sendMessage(from, { text: desc }, { quoted: mek });
 
-        // Send thumbnail with details
-        await conn.sendMessage(from, {
-            image: { url: audio.thumbnail },
-            caption: message
-        });
+        // Download song using @zulproject/ytdl  
+        const quality = "128";  
+        const songData = await ytmp3(url, quality);
 
-        // Send audio as a document
-        await conn.sendMessage(from, {
-            document: { url: audio.download },
-            mimetype: 'audio/mp3',
-            fileName: `${audio.title}.mp3`,
-            caption: `Downloaded by *DINUWH MD*`
-        });
+        if (!songData || !songData.download) {
+            return reply("❌ *Failed to download the song!*");
+        }
 
-        // React success ✅
-        await conn.sendMessage(from, {
-            react: { text: '✅', key: mek.key }
-        });
+        // Validate song duration (limit: 30 min)  
+        let durationParts = data.timestamp.split(":").map(Number);
+        let totalSeconds =
+            durationParts.length === 3
+                ? durationParts[0] * 3600 + durationParts[1] * 60 + durationParts[2]
+                : durationParts[0] * 60 + durationParts[1];
+
+        if (totalSeconds > 1800) {
+            return reply("⏱️ *Audio limit is 30 minutes!*");
+        }
+
+        // **Send as Normal Audio File**  
+        await robin.sendMessage(from, { audio: { url: songData.download }, mimetype: "audio/mpeg" }, { quoted: mek });
+
+        // **Send as a Voice Note (PTT)**  
+        await robin.sendMessage(from, { audio: { url: songData.download }, mimetype: "audio/mpeg", ptt: true }, { quoted: mek });
+
+        return reply("✅ *Download complete! Enjoy your song!*");
 
     } catch (e) {
         console.error(e);
-        await reply(`📕 An error occurred: ${e.message}`);
+        reply(`❌ *Error:* ${e.message}`);
     }
-});
+}
+);
