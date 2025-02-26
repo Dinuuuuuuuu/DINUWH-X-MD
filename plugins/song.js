@@ -1,65 +1,44 @@
-const { cmd } = require("../command");
-const { fetchJson } = require("../lib/functions");
-const yts = require('yt-search');
-const axios = require('axios');
+const { cmd } = require('../command');
+const fetch = require("node-fetch");
+const ytsearch = require("yt-search");
+const apiUrl = `https://manul-ofc-api-site-afeb13f3dabf.herokuapp.com/ytmp3-fix?url=`
+cmd({ 
+    pattern: "song", 
+    alias: ["audio", "mp3"], 
+    react: "🎵", 
+    desc: "Download YouTube audio", 
+    category: "download", 
+    use: '.song <YouTube URL or Name>', 
+    filename: __filename 
+}, async (conn, mek, m, { from, q, reply }) => { 
+    try { 
+        if (!q) return await reply("⚠️ Please provide a YouTube URL or song name!");
 
-cmd({
-    pattern: 'song',
-    desc: 'Download songs automatically',
-    react: "🎧",
-    category: 'download',
-    filename: __filename
-}, async (conn, mek, m, { from, q, reply }) => {
-    try {
-        if (!q) return reply('*Please enter a song name or a URL!*');
+        const yt = await ytsearch(q);
+        if (!yt.videos.length) return reply("❌ No results found!");
 
-        const search = await yts(q);
-        const data = search.videos[0];
-        const url = data.url;
+        let yts = yt.videos[0];  
+        let apiUrl = `https://manul-ofc-api-site-afeb13f3dabf.herokuapp.com/ytmp3-fix?url=${encodeURIComponent(yts.url)}`;
 
-        let desc = `*🎵 SONG DETAILS 🎵*
+        let response = await fetch(apiUrl);
+        let data = await response.json();
 
-*🎼 Title:* ${data.title}
-*⏳ Duration:* ${data.timestamp}
-*📅 Uploaded:* ${data.ago}
-*📊 Views:* ${data.views}
-*🔗 Link:* ${data.url}
-
-🎧 *Downloading audio...*`;
-
-        await conn.sendMessage(from, { image: { url: data.thumbnail }, caption: desc }, { quoted: mek });
-
-        // **Fetch MP3 from Custom API**
-        let apiUrl = `https://manul-ofc-ytdl-paid-30a8f429a0a6.herokuapp.com/download/audio?url=${url}`;
-        let response = await axios.get(apiUrl);
-        
-        if (!response.data || !response.data.result || !response.data.result.audio) {
-            return reply('❌ *Failed to fetch the MP3 file. Try again later.*');
+        if (!data || !data.status || !data.result || !data.result.download_url) {
+            return reply("⚠️ Failed to fetch the audio. Please try again later.");
         }
 
-        let downloadUrl = response.data.result.audio;
+        let audioUrl = data.result.download_url;
+        let caption = `🎵 *Title:* ${yts.title}\n⏱️ *Duration:* ${yts.timestamp}\n👀 *Views:* ${yts.views}\n👤 *Author:* ${yts.author.name}\n🔗 *Link:* ${yts.url}\n\n*🤖 Powered by DINUWH MD*`;
 
-        // **Send Audio File**
-        await conn.sendMessage(from, { 
-            audio: { url: downloadUrl }, 
-            mimetype: 'audio/mpeg',
-            caption: `*🎶 Enjoy your song!*`
-        }, { quoted: mek });
+        await conn.sendMessage(from, { image: { url: yts.thumbnail || '' }, caption }, { quoted: mek });
+        await conn.sendMessage(from, { audio: { url: audioUrl }, mimetype: "audio/mpeg", ptt: false }, { quoted: mek });
 
-        // **Send as Document**
-        await conn.sendMessage(from, { 
-            document: { url: downloadUrl }, 
-            mimetype: 'audio/mpeg',
-            fileName: `${data.title}.mp3`,
-            caption: `*📁 MP3 File*`
-        }, { quoted: mek });
-
-        // Reaction (Success)
-        await conn.sendMessage(from, { react: { text: '✅', key: mek.key } });
+        await reply("✅ *Download complete!*");
 
     } catch (e) {
         console.error(e);
-        await conn.sendMessage(from, { react: { text: '❌', key: mek.key } });
-        reply('*❌ An error occurred while processing your request.*');
+        reply("❌ An error occurred. Please try again later.");
     }
 });
+
+module.exports = { cmd };
