@@ -1,44 +1,59 @@
-const { cmd } = require('../command');
-const fetch = require("node-fetch");
-const ytsearch = require("yt-search");
-const apiUrl = `https://manul-official-api-site-2025-bc8a57492a5f.herokuapp.com/ytmp3-fix?url`
-cmd({ 
-    pattern: "song", 
-    alias: ["audio", "mp3"], 
-    react: "🎵", 
-    desc: "Download YouTube audio", 
-    category: "download", 
-    use: '.song <YouTube URL or Name>', 
-    filename: __filename 
-}, async (conn, mek, m, { from, q, reply }) => { 
-    try { 
-        if (!q) return await reply("⚠️ Please provide a YouTube URL or song name!");
+const config = require('../config');
+const {
+  cmd,
+  commands
+} = require('../command');
+const fetch = require('node-fetch');
 
-        const yt = await ytsearch(q);
-        if (!yt.videos.length) return reply("❌ No results found!");
+cmd({
+  pattern: "ytmp3",
+  category: "downloader",
+  react: "🎥",
+  desc: "Download YouTube audios as MP3",
+  filename: __filename
+},
+async(conn, mek, m, {from, quoted, body, isCmd, command, args, q, isGroup, sender, senderNumber, botNumber2, botNumber, pushname, isMe, isOwner, groupMetadata, groupName, participants, groupAdmins, isBotAdmins, isAdmins, reply}) => {
+    try {
+        if (!q) return await reply('Please provide a YouTube audio URL.');
 
-        let yts = yt.videos[0];  
-        let apiUrl = `https://manul-official-api-site-2025-bc8a57492a5f.herokuapp.com/ytmp3-fix?url=${encodeURIComponent(yts.url)}`;
+        const url = encodeURIComponent(q);
+        const response = await fetch(`https://dark-shan-yt.koyeb.app/download/ytmp3?url=${url}`);
+        const data = await response.json();
 
-        let response = await fetch(apiUrl);
-        let data = await response.json();
+        if (!data.status) return await reply('Failed to fetch audio details. Please check the URL and try again.');
 
-        if (!data || !data.status || !data.result || !data.result.download_url) {
-            return reply("⚠️ Failed to fetch the audio. Please try again later.");
-        }
+        const audio = data.data;
+        const message = `
+🎶 𝐘𝐓 𝐒𝐎𝐍𝐆 𝐃𝐎𝐖𝐍𝐋𝐎𝐀𝐃 📥
 
-        let audioUrl = data.result.download_url;
-        let caption = `🎵 *Title:* ${yts.title}\n⏱️ *Duration:* ${yts.timestamp}\n👀 *Views:* ${yts.views}\n👤 *Author:* ${yts.author.name}\n🔗 *Link:* ${yts.url}\n\n*🤖 Powered by DINUWH MD*`;
+╭━━━━━━━━━●●►
+┢❑ 𝐓𝐢𝐭𝐥𝐞: ${audio.title}
+┢❑ 𝐅𝐨𝐫𝐦𝐚𝐭: ${audio.format}
+┢❑ 𝐓𝐢𝐦𝐞: ${audio.timestump || 'N/A'}
+┢❑ 𝐔𝐩𝐥𝐨𝐚𝐝𝐞𝐝: ${audio.ago || 'N/A'}
+┢❑ 𝐕𝐢𝐞𝐰𝐬: ${audio.views || 'N/A'}
+┢❑ 𝐋𝐢𝐤𝐞𝐬: ${audio.likes || 'N/A'}
+╰━━━━━━━━●●►
+        `;
 
-        await conn.sendMessage(from, { image: { url: yts.thumbnail || '' }, caption }, { quoted: mek });
-        await conn.sendMessage(from, { audio: { url: audioUrl }, mimetype: "audio/mpeg", ptt: false }, { quoted: mek });
+       
+        await conn.sendMessage(from, {
+            image: { url: audio.thumbnail },
+            caption: message
+        });
 
-        await reply("✅ *Download complete!*");
+        await conn.sendMessage(from, {
+            document: { url: audio.download },
+            mimetype: 'audio/mp3',
+            fileName: `${audio.title}.mp3`,
+            caption: `ᴅᴀʀᴋ ꜱʜᴀɴ ᴍᴅ`
+        });
 
+        await conn.sendMessage(from, {
+            react: { text: '✅', key: mek.key }
+        });
     } catch (e) {
         console.error(e);
-        reply("❌ An error occurred. Please try again later.");
+        await reply(`📕 An error occurred: ${e.message}`);
     }
 });
-
-module.exports = { cmd };
